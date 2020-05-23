@@ -1,0 +1,273 @@
+trigger:
+  branches:
+    include:
+      - master
+
+variables:
+  - name: project_name
+    value: "betterworld"
+  - name: azure_resource_group_name
+    value: "BetterWorldApp"
+  - name: storage_account_name
+    value: "bw-storage"
+  - name: subscription_id
+    value: "1427e7fb-a488-4ec5-be44-30ac10ca2e95"
+  - name: workingDir
+    value: System.DefaultWorkingDirectory
+
+stages:
+- stage: "Infrastructure"
+  jobs:
+  - job: Network
+    pool:
+      vmImage: "windows-latest"
+    steps:
+      - task: AzureResourceManagerTemplateDeployment@3
+        name: 'NetworkARMDeployment'
+        inputs:
+          azureResourceManagerConnection: "CI-CD_for_Azure_Windows_VM_Scale_Sets"
+          subscriptionId: "$(subscription_id)"
+          action: "Create Or Update Resource Group"
+          resourceGroupName: $(dev_azure_resource_group_name)
+          location: "East US"
+          templateLocation: "Linked artifact"
+          csmFile: "$(workingDir)/arm_templates/network.json"
+          csmParametersFile: "$(workingDir)/arm_templates/parameters/devtest/network_devtest.json"
+          overrideParameters: '-projectName $(project_name)'
+          deploymentMode: "Incremental"
+          deploymentOutputs: network_arm
+      - task: PowerShell@2
+        name: "ParseNetworkARMOutput"
+        inputs:
+          targetType: 'inline'
+          script: |
+            $output = $Env:network_arm | ConvertFrom-Json
+            $vars = 'subnetName','virtualNetworkName','loadBalancerName','loadBalancerBackendPoolName','publicDnsName'
+            $vars | foreach {
+              echo "##vso[task.setvariable variable=$_;isOutput=true]$($output.$_.value)"
+            }
+          pwsh: true
+  - job: Storage
+    dependsOn:
+      - TemplateTests
+    pool:
+      vmImage: "windows-latest"
+    steps:
+      - task: PowerShell@2
+        displayName: "Generate datetime stamp for storage account"
+        inputs:
+          targetType: 'inline'
+          script: |
+            ## Expire tomorrow
+            $signedExpirySasToken = Get-Date ((Get-Date).AddDays(1)) -Format 'yyyy-MM-ddT00:00:00Z'
+            "##vso[task.setvariable variable=signedExpirySasToken;]$signedExpirySasToken"
+          pwsh: true
+      - task: AzureResourceManagerTemplateDeployment@3
+        displayName: 'Storage'
+        inputs:
+          azureResourceManagerConnection: "CI-CD_for_Azure_Windows_VM_Scale_Sets"
+          subscriptionId: "$(subscription_id)"
+          action: "Create Or Update Resource Group"
+          resourceGroupName: $(dev_azure_resource_group_name)
+          location: "East US"
+          templateLocation: "Linked artifact"
+          csmFile: "$(workingDir)/arm_templates/storage.json"
+          csmParametersFile: "$(workingDir)/arm_templates/parameters/devtest/storage_devtest.json"
+          overrideParameters: '-storageAccountName $(dev_storage_account_name) -signedExpirySasToken $(signedExpirySasToken)'
+          deploymentMode: "Incremental"
+          deploymentOutputs: storage_arm
+      - task: PowerShell@2
+        name: "ParseStorageARMOutput"
+        inputs:
+          targetType: 'inline'
+          script: |
+            $output = $Env:storage_arm | ConvertFrom-Json
+            $vars = 'storageAccountName','setupScriptContainerName','sasToken','storageAccountKey'
+            $vars | foreach {
+              echo "##vso[task.setvariable variable=$_;isOutput=true]$($output.$_.value)"
+            }
+          pwsh: true
+  - job: Compute
+    pool:
+        vmImage: "windows-latest"
+    dependsOn:
+      - Network
+      - TemplateTests
+    variables:
+      subnetName: $[ dependencies.Network.outputs['ParseNetworkARMOutput.subnetName'] ]
+      virtualNetworkName: $[ dependencies.Network.outputs['ParseNetworkARMOutput.virtualNetworkName'] ]
+      loadBalancerName: $[ dependencies.Network.outputs['ParseNetworkARMOutput.loadBalancerName'] ]
+      loadBalancerBackendPoolName: $[ dependencies.Network.outputs['ParseNetworkARMOutput.loadBalancerBackendPoolName'] ]
+    steps:
+      - task: AzureResourceManagerTemplateDeployment@3
+        name: 'Compute'
+        inputs:
+          azureResourceManagerConnection: "CI-CD_for_Azure_Windows_VM_Scale_Sets"
+          subscriptionId: "$(subscription_id)"
+          action: "Create Or Update Resource Group"
+          resourceGroupName: $(dev_azure_resource_group_name)
+          location: "East US"
+          templateLocation: "Linked artifact"
+          csmFile: "$(workingDir)/arm_templates/compute.json"
+          csmParametersFile: "$(workingDir)/arm_templates/parameters/devtest/compute_devtest.json"
+          overrideParameters: '-subnetName $(subnetName) -virtualNetworkName $(virtualNetworkName) -loadBalancerName $(loadBalancerName) -loadBalancerBackendPoolName $(loadBalancerBackendPoolName)'
+          deploymentMode: "Incremental"
+          deploymentOutputs: compute_arm
+      - task: PowerShell@2
+        name: "ParseComputeARMOutput"
+        inputs:
+          targetType: 'inline'
+          script: |
+            $output = $Env:compute_arm | ConvertFrom-Json
+            $vars = 'vmssName'
+            $vars | foreach {
+              write-output $output.$_.value
+              echo "##vso[task.setvariable variable=$_;isOutput=true]$($output.$_.value)"
+            }
+          pwsh: true
+  - job: Database
+    pool:
+      vmImage: "windows-latest"
+    dependsOn:
+      - Storage
+      - TemplateTests
+    steps:
+      - task: AzureResourceManagerTemplateDeployment@3
+        name: 'DatabaseARMDeployment'
+        inputs:
+          azureResourceManagerConnection: "CI-CD_for_Azure_Windows_VM_Scale_Sets"
+          subscriptionId: "$(subscription_id)"
+          action: "Create Or Update Resource Group"
+          resourceGroupName: $(dev_azure_resource_group_name)
+          location: "East US"
+          templateLocation: "Linked artifact"
+          csmFile: "$(workingDir)/arm_templates/database.json"
+          csmParametersFile: "$(workingDir)/arm_templates/parameters/devtest/database_devtest.json"
+          deploymentMode: "Incremental"
+          deploymentOutputs: database_arm
+      - task: PowerShell@2
+        name: "ParseDatabaseARMOutput"
+        inputs:
+          targetType: 'inline'
+          script: |
+            $output = $Env:database_arm | ConvertFrom-Json
+            $vars = 'sqlServerName'
+            $vars | foreach {
+              echo "##vso[task.setvariable variable=$_;isOutput=true]$($output.$_.value)"
+            }
+          pwsh: true
+  - job: IIS
+    pool:
+      vmImage: "windows-latest" ## This is for Publish-AzVMDscConfiguration
+    dependsOn:
+      - Storage
+      - Compute
+      - TemplateTests
+    variables:
+      storageAccountName: $[ dependencies.Storage.outputs['ParseStorageARMOutput.storageAccountName'] ]
+      setupScriptContainerName: $[ dependencies.Storage.outputs['ParseStorageARMOutput.setupScriptContainerName'] ]
+      sasToken: $[ dependencies.Storage.outputs['ParseStorageARMOutput.sasToken'] ]
+      storageAccountKey: $[ dependencies.Storage.outputs['ParseStorageARMOutput.storageAccountKey'] ]
+      vmssName: $[ dependencies.Compute.outputs['ParseComputeARMOutput.vmssName'] ]
+    steps:
+      - task: AzurePowerShell@5
+        displayName: "Package up DSC script"
+        inputs:
+          azureSubscription: 'CI-CD_for_Azure_Windows_VM_Scale_Sets'
+          ScriptType: 'InlineScript'
+          Inline: |
+            Install-Module xPSDesiredStateConfiguration -Force
+            Publish-AzVMDscConfiguration "$(workingDir)\dsc\iis_setup.ps1" -OutputArchivePath "$(workingDir)\dsc\iis_setup.zip"
+          FailOnStandardError: true
+          azurePowerShellVersion: 'LatestVersion'
+      - task: AzureCLI@2
+        displayName: "Copy IIS DSC script to storage account"
+        inputs:
+          azureSubscription: 'CI-CD_for_Azure_Windows_VM_Scale_Sets'
+          scriptType: 'pscore'
+          scriptLocation: 'inlineScript'
+          inlineScript: 'az storage blob upload --container-name $(setupScriptContainerName) --file "$(workingDir)/dsc/iis_setup.zip" --name iis_setup.zip --account-name $(storageAccountName) --account-key $(storageAccountKey)'
+      - task: AzureResourceManagerTemplateDeployment@3
+        name: 'WebAppARMDeployment'
+        inputs:
+          azureResourceManagerConnection: "CI-CD_for_Azure_Windows_VM_Scale_Sets"
+          subscriptionId: "$(subscription_id)"
+          action: "Create Or Update Resource Group"
+          resourceGroupName: $(dev_azure_resource_group_name)
+          location: "East US"
+          templateLocation: "Linked artifact"
+          csmFile: "$(workingDir)/arm_templates/iis.json"
+          csmParametersFile: "$(workingDir)/arm_templates/parameters/devtest/iis_devtest.json"
+          overrideParameters: '-vmssName $(vmssName) -storageAccountName $(storageAccountName) -setupScriptContainerName $(setupScriptContainerName) -sasToken $(sasToken)'
+          deploymentMode: "Incremental"
+  - job: InfrastructureTesting
+    dependsOn:
+      - Network
+      - Storage
+      - Compute
+      - Database
+      - IIS
+      - TemplateTests
+    pool:
+      vmImage: "windows-latest"
+    variables:
+      publicDnsName: $[ dependencies.Network.outputs['ParseNetworkARMOutput.publicDnsName'] ]
+    steps:
+    - task: AzurePowerShell@5
+      inputs:
+        azureSubscription: 'CI-CD_for_Azure_Windows_VM_Scale_Sets'
+        ScriptType: 'FilePath'
+        ScriptPath: '$(workingDir)/tests/invoke-test.ps1'
+        ScriptArguments: '-TestScriptFilePath "$(workingDir)/tests/vmss.infrastructure.tests.ps1" -TestResultsFilePath "$(workingDir)/tests/vmss.infrastructure.tests.xml" -TestScriptParameters @{publicDnsName="$(publicDnsName)"}'
+        FailOnStandardError: true
+        azurePowerShellVersion: 'LatestVersion'
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: "NUnit"
+        testResultsFiles: "$(workingDir)/tests/vmss.infrastructure.tests.xml"
+        failTaskOnFailedTests: true
+- stage: AppDeployment
+  dependsOn: Infrastructure
+  jobs: 
+  - job: AppBuild
+    steps:
+    # Build and publish the application library
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet restore'
+      inputs:
+        command: restore
+        projects: '**/*.csproj'
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet build'
+      inputs:
+        command: build
+        projects: '**/*.csproj'
+        arguments: '--configuration $(buildConfiguration)'
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet publish'
+      inputs:
+        command: publish
+        publishWebProjects: True
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+        zipAfterPublish: True
+    # Publish the app as an artifact
+    - publish: $(Build.StagingDirectory)
+      artifact: app
+  - job: Release
+    dependsOn: AppBuild
+    steps:
+    # Don't clone the repo
+    - checkout: none
+
+    # Download the published application artifact
+    - download: current
+      artifact: app
+
+    # Release the app
+    # - task: AzureRmWebAppDeployment@4
+    #   inputs:
+    #     ConnectionType: 'AzureRM'
+    #     azureSubscription: 'CI-CD_for_Azure_Windows_VM_Scale_Sets'
+    #     WebAppName: $(webAppName)
+    #     package: '$(Pipeline.Workspace)/**/*.zip'
+    #     WebAppKind: WebApp
