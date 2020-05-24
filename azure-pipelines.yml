@@ -25,6 +25,11 @@ stages:
       - task: TerraformCLI@0
         inputs:
           command: 'init'
+      - task: TerraformCLI@0
+        inputs:
+          command: 'plan'
+          environmentServiceName: 'Adam the Automator(1427e7fb-a488-4ec5-be44-30ac10ca2e95)'
+          commandOptions: '--var-file=secrets.tfvars'
 #       - task: AzureResourceManagerTemplateDeployment@3
 #         name: 'NetworkARMDeployment'
 #         inputs:
