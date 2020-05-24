@@ -56,9 +56,7 @@ resource "azurerm_network_interface" "vnic" {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
-    # public_ip_address_id          = "${length(azurerm_public_ip.pubIp.*.id) > 0 ? element(concat(azurerm_public_ip.pubIp.*.id, list("")), count.index) : ""}"
-    # public_ip_address_id = [element(azurerm_public_ip.pubIp.*.id, count.index)]
-    public_ip_address_id = azurerm_public_ip.pubIp[count.index].id
+    public_ip_address_id          = azurerm_public_ip.pubIp[count.index].id
   }
 }
 
@@ -92,7 +90,7 @@ resource "azurerm_windows_virtual_machine" "vm" {
 }
 
 resource "azurerm_network_security_group" "nsg" {
-  name                = "rdp-access"
+  name                = "env-access"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -107,9 +105,21 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+
+  security_rule {
+    name                       = "winrm-http"
+    priority                   = 101
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "5985"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
 }
 
-# output "pubips" {
-#   value       = azurerm_public_ip.pubIp.ip_address
-#   description = "Public IPs of the VMs"
-# }
+output "VMs" {
+  value       = "${zipmap(azurerm_windows_virtual_machine.vm.*.name, azurerm_public_ip.pubIp.*.ip_address)}"
+  description = "Public IPs of the VMs"
+}
