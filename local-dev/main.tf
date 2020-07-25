@@ -7,6 +7,14 @@ variable "envName" {
   type = string
 }
 
+variable "vmAdminUsername" {
+  type = string
+}
+
+variable "vmAdminPassword" {
+  type = string
+}
+
 data "azurerm_client_config" "current" {}
 
 resource "azurerm_resource_group" "rg" {
@@ -161,8 +169,6 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 }
-
-
 
 resource "azurerm_key_vault" "vault" {
   name                        = "keyvault"
