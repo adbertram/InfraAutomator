@@ -12,7 +12,7 @@ variables:
 
 steps:
   - task: TerraformCLI@0
-    dispalyName: "Download Terraform providers"
+    displayName: "Download Terraform providers"
     inputs:
       command: 'init'
   - task: TerraformCLI@0
