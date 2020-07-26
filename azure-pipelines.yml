@@ -12,17 +12,17 @@ variables:
 
 steps:
   - task: TerraformCLI@0
-    name: "Download Terraform providers"
+    dispalyName: "Download Terraform providers"
     inputs:
       command: 'init'
   - task: TerraformCLI@0
-    name: "Test Terraform plan for VM infrastructure"
+    displayName: "Test Terraform plan for VM infrastructure"
     inputs:
       command: 'plan'
       environmentServiceName: 'ARM'
       commandOptions: '--var=vmAdminUserName="$(vmAdminUserName)" --var=vmAdminUserName="$(vmAdminPassword)"'
   - task: TerraformCLI@0
-    name: "Build infrastructure"
+    displayName: "Build infrastructure"
     inputs:
       command: 'apply'
       environmentServiceName: 'ARM'

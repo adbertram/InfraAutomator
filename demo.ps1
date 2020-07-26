@@ -29,12 +29,11 @@ https://help.github.com/en/github/authenticating-to-github/creating-a-personal-a
 <#
 Assumptions/Prerequisites
 =============================
-1. You have the Azure CLI installed and authenticated to Azure
-2. You have Terraform installed already on your local machine.
-3. You're using PowerShell Core.
-4. You have the InfrastructureAutomator GitHub repo cloned to $repoWorkingDir
-5. You have a PAT generated in your GitHub repo
-6. You have the Azure PowerShell module installed and authenticated.
+1. You have Terraform installed already on your local machine.
+2. You're using PowerShell Core.
+3. You have the InfrastructureAutomator GitHub repo cloned to $repoWorkingDir
+4. You have a PAT generated in your GitHub repo
+5. You have the Azure PowerShell module installed and authenticated.
 
 WARNING: Using this setup exactly as is WILL incur some cost!
 #>
@@ -165,16 +164,14 @@ Invoke-Pester "$repoWorkingDir\tests\vm.tests.ps1"
 
 #region If you want to build this yourself
 ## They keyvault holds all of the sensitive information the pipeline will use
-$kvName = 'keyvault'
-az keyvault create --location $azRegion --name $kvName --resource-group $azResourceGroup --enabled-for-template-deployment true
-#endregion
+$kvName = 'infraautomate-keyvault'
 
-#region If you want to build this yourself
-
-$kvName = 'keyvault'
 ## Create the secrets to store the VM username/password
 az keyvault secret set --name vmAdminUsername --value 'adminuser' --vault-name $kvName
 az keyvault secret set --name vmAdminPassword --value "I like azure." --vault-name $kvName
+#endregion
+
+#endregion
 
 ## This will be how the pipeline authenticates to your subscription
 $spIdUri = "http://dev_playground"

@@ -162,13 +162,11 @@ resource "azurerm_network_security_group" "nsg" {
   }
 }
 
-
-
 resource "azurerm_key_vault" "vault" {
-  name                        = "keyvault"
+  name                        = "infraautomate-keyvault"
   location                    = azurerm_resource_group.rg.location
   resource_group_name         = azurerm_resource_group.rg.name
-  enabled_for_disk_encryption = true
+  enabled_for_template_deployment = true
   tenant_id                   = data.azurerm_client_config.current.tenant_id
   soft_delete_enabled         = true
   purge_protection_enabled    = false
@@ -179,26 +177,10 @@ resource "azurerm_key_vault" "vault" {
     tenant_id = data.azurerm_client_config.current.tenant_id
     object_id = data.azurerm_client_config.current.object_id
 
-    key_permissions = [
-      "get",
-    ]
-
     secret_permissions = [
+      "set",
       "get",
-    ]
-
-    storage_permissions = [
-      "get",
+      "list"
     ]
   }
-
-  network_acls {
-    default_action = "Deny"
-    bypass         = "AzureServices"
-  }
-}
-
-output "VM" {
-  value       = "${zipmap(azurerm_windows_virtual_machine.vm.*.name, azurerm_public_ip.pubIp.*.ip_address)}"
-  description = "Public IP of the VM"
 }
