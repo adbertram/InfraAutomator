@@ -22,13 +22,13 @@ steps:
     inputs:
       command: 'plan'
       environmentServiceName: 'ARM'
-      commandOptions: '-input=false --var="vmAdminUsername=$(vmAdminUsername)" --var="vmAdminUsername=$(vmAdminPassword)"'
+      commandOptions: '-input=false --var="vmAdminUsername=$(vmAdminUsername)" --var="vmAdminPassword=$(vmAdminPassword)"'
   - task: TerraformCLI@0
     displayName: "Build the VM"
     inputs:
       command: 'apply'
       environmentServiceName: 'ARM'
-      commandOptions: '-input=false --var="vmAdminUsername=$(vmAdminUsername)" --var="vmAdminUsername=$(vmAdminPassword)"'
+      commandOptions: '-input=false --var="vmAdminUsername=$(vmAdminUsername)" --var="vmAdminPassword=$(vmAdminPassword)"'
   - task: Pester@10
     inputs:
       scriptFolder: '$(System.DefaultWorkingDirectory)\tests'
