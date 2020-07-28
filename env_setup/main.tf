@@ -83,6 +83,14 @@ resource "azurerm_network_security_group" "nsg" {
   }
 }
 
+resource "azuredevops_serviceendpoint_azurerm" "endpointazure" {
+  project_id                = azuredevops_project.project.id
+  service_endpoint_name     = "ARM"
+  azurerm_spn_tenantid      = data.azurerm_client_config.current.tenant_id
+  azurerm_subscription_id   = data.azurerm_client_config.current.subscription_id
+  azurerm_subscription_name = data.azurerm_subscription.current.display_name
+}
+
 resource "azurerm_key_vault" "vault" {
   name                            = "infraautomator-keyvault"
   depends_on                      = [azuredevops_serviceendpoint_azurerm.endpointazure]
@@ -137,15 +145,9 @@ resource "azuredevops_project" "project" {
   description = "Supporting pipeline for the Azure DevOps Pipelines for the Infrastructure Automator PowerShell Saturday Chicago conference talk"
 }
 
-resource "azuredevops_serviceendpoint_azurerm" "endpointazure" {
-  project_id                = azuredevops_project.project.id
-  service_endpoint_name     = "ARM"
-  azurerm_spn_tenantid      = data.azurerm_client_config.current.tenant_id
-  azurerm_subscription_id   = data.azurerm_client_config.current.subscription_id
-  azurerm_subscription_name = data.azurerm_subscription.current.display_name
-}
 
-## Getting error "Github Apps must be created on Github and then can be imported"
+
+## Getting error "Github Apps must be created on Github and then can be imported". We're using a personal access token
 # resource "azuredevops_serviceendpoint_github" "gh_endpoint" {
 #   project_id            = azuredevops_project.project.id
 #   service_endpoint_name = var.gh_service_endpoint_name

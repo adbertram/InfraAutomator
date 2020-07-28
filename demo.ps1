@@ -108,20 +108,30 @@ az keyvault secret set --name vmAdminPassword --value "I like azure." --vault-na
 
 ## Install the AzDo extension to the Azure CLI
 az extension add --name azure-devops
-az devops configure --defaults organization=https://dev.azure.com/adbertram --defaults project="Infrastructure Automator"
+az devops configure --defaults organization=https://dev.azure.com/adbertram project="Infrastructure Automator"
 
 ## GitHub endpoint for the pipeline to connect to the repo
 $gitHubRepoUrl = 'https://github.com/adbertram/InfraAutomator'
 
-## gitHubAccessToken = '147c60f859fe8eb2ad728be18606a21547461bf6'
+## gitHubAccessToken = '2e151d195ac89a80584711bcda2ed90664573012'
 $gitHubServiceEndpoint = az devops service-endpoint github create --github-url $gitHubRepoUrl --name 'GitHub' | ConvertFrom-Json
 
 ## Install Terraform extension in the org
 ## https://marketplace.visualstudio.com/items?itemName=charleszipp.azure-pipelines-tasks-terraform
 az devops extension install --extension-id azure-pipelines-tasks-terraform --publisher-id "charleszipp"
 
+## Install the Pester extension
+az devops extension install --extension-id PesterRunner --publisher-id Pester
+
 ## Create the pipeline but don't run it yet
 az pipelines create --name 'InfrastructureAutomator' --repository $gitHubRepoUrl --branch master --service-connection $gitHubServiceEndpoint.id --skip-run
+## Set the visibility to public if not already created: https://dev.azure.com/adbertram/Infrastructure%20Automator/_settings/
+
+## Allow the pipeline to read the keyvault. This isn't possible in Terraform
+$serviceConnectionId = (az devops service-endpoint list | ConvertFrom-Json | where {$_.name -eq 'ARM'}).id
+az devops service-endpoint update --id $serviceConnectionId --enable-for-all
+
+# az keyvault set-policy --name $kvName --spn $spIdUri --secret-permissions get list
 
 #endregion
 
@@ -204,10 +214,6 @@ code "$repoWorkingDir\azure-pipelines.yml"
 #endregion
 
 #region Clean up the remnants
-
-# $spId = ((az ad sp list --all | ConvertFrom-Json) | ? { '<https://ServerAutomationDemo>' -in $_.serviceprincipalnames }).objectId
-# az ad sp delete --id $spId
-
 ## Terraform destroy here for the VM and environment
 
 Set-Location -Path $repoWorkingDir
@@ -215,16 +221,5 @@ terraform destroy --var-file=secrets.tfvars -auto-approve
 
 Set-Location -Path "$repoWorkingDir\env_setup"
 terraform destroy --var-file=secrets.tfvars -auto-approve
-
-
-
-
-## Delete this here
-### $gitHubServiceEndpoint = az devops service-endpoint github create --github-url $gitHubRepoUrl --name 'GitHub' | ConvertFrom-Json
-
-
-## remove project
-$projectId = ((az devops project list | convertfrom-json).value | where { $_.name -eq 'Infrastructure Automator' }).id
-$null = az devops project delete --id $projectId --yes
 
 #endregion

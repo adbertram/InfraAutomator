@@ -4,14 +4,14 @@ trigger:
       - master
 
 variables:
-  keyvault_name: "keyvault"
+  keyvault_name: "infraautomator-keyvault"
 
 steps:
   - task: AzureKeyVault@1
     inputs:
       azureSubscription: 'ARM'
       KeyVaultName: $(keyvault_name)
-      SecretsFilter: 'vmAdminUserName,vmAdminPassword'
+      SecretsFilter: 'vmAdminUsername,vmAdminPassword'
   - task: TerraformCLI@0
     displayName: "Download Terraform providers"
     inputs:
