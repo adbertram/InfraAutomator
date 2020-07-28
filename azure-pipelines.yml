@@ -31,18 +31,9 @@ steps:
       commandOptions: '-input=false --var="vmAdminUsername=$(vmAdminUsername)" --var="vmAdminPassword=$(vmAdminPassword)"'
   - task: Pester@10
     inputs:
-      scriptFolder: '$(System.DefaultWorkingDirectory)\tests'
-      resultsFile: '$(System.DefaultWorkingDirectory)\tests\results.XML'
+      scriptFolder: '$(System.DefaultWorkingDirectory)/tests'
+      resultsFile: '$(System.DefaultWorkingDirectory)/tests/results.XML'
       usePSCore: True
-  - task: PowerShell@2
-    displayName: "Run Pester tests"
-    inputs:
-      azureSubscription: 'ARM'
-      ScriptType: 'FilePath'
-      ScriptPath: '$(workingDir)/tests/invoke-test.ps1'
-      ScriptArguments: '$(System.DefaultWorkingDirectory)/tests'
-      FailOnStandardError: true
-      azurePowerShellVersion: 'LatestVersion'
   - task: PublishTestResults@2
     inputs:
       testResultsFormat: "NUnit"
