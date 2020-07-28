@@ -1,1 +1,6 @@
-envName = "dev_playground"
+rgName = "dev_playground"
+rgLocation = "eastus"
+vmName = "VM-0"
+vmSize = "Standard_F2"
+nsgId = "/subscriptions/1427e7fb-a488-4ec5-be44-30ac10ca2e95/resourceGroups/dev_playground/providers/Microsoft.Network/networkSecurityGroups/env-access"
+subnetId = "/subscriptions/1427e7fb-a488-4ec5-be44-30ac10ca2e95/resourceGroups/dev_playground/providers/Microsoft.Network/virtualNetworks/vNet/subnets/internal"

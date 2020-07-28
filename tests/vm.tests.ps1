@@ -8,7 +8,7 @@ describe 'resource group' {
 
 describe 'virtual network' {
 
-    $script:vNet = Get-AzVirtualNetwork -Name dev_playground-vNet -ErrorAction Ignore
+    $script:vNet = Get-AzVirtualNetwork -Name 'vNet' -ErrorAction Ignore
 
     it 'creates the vNet with the expected name' {
         $script:vNet | should -not -BeNullOrEmpty
@@ -21,7 +21,7 @@ describe 'virtual network' {
 
 describe 'subnet' {
 
-    $script:vNet = Get-AzVirtualNetwork -Name dev_playground-vNet -ErrorAction Ignore
+    $script:vNet = Get-AzVirtualNetwork -Name 'vNet' -ErrorAction Ignore
     $script:subnet = Get-AzVirtualNetworkSubnetConfig -VirtualNetwork $script:vNet -ErrorAction Ignore
 
     it 'attaches the subnet to the expected vNet' {
@@ -48,7 +48,7 @@ describe 'public IP' {
 
 describe 'vNic' {
 
-    $script:vNet = Get-AzVirtualNetwork -Name dev_playground-vNet -ErrorAction Ignore
+    $script:vNet = Get-AzVirtualNetwork -Name 'vNet' -ErrorAction Ignore
     $script:subnet = Get-AzVirtualNetworkSubnetConfig -VirtualNetwork $script:vNet -ErrorAction Ignore
 
     $script:nsg = Get-AzNetworkSecurityGroup -Name 'env-access' -ResourceGroupName 'dev_playground' -ErrorAction Ignore
@@ -66,11 +66,7 @@ describe 'vNic' {
     }
 
     it 'create the vNic with the expected address allocation' {
-        $script:vNic.IpConfigurations[0].PrivateIpAllocationMethod | should -Be 'Static'
-    }
-
-    it 'creates the vNic with the expected IP address' {
-        $script:vNic.IpConfigurations[0].PrivateIpAddress | should -Be '10.0.2.5'
+        $script:vNic.IpConfigurations[0].PrivateIpAllocationMethod | should -Be 'Dynamic'
     }
 
     it 'assigns the vNic to the expected public IP' {

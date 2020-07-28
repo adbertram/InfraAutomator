@@ -4,53 +4,46 @@ trigger:
       - master
 
 variables:
-  resourceGroup: "dev_playground"
-  storage_account : "dev_playground"
-  storage_container_name : "dsc_scripts"
-  dsc_setup_file_name : "dsc_iis.ps1"
   keyvault_name: "keyvault"
 
 steps:
+  - task: AzureKeyVault@1
+    inputs:
+      azureSubscription: 'ARM'
+      KeyVaultName: $(keyvault_name)
+      SecretsFilter: 'vmAdminUserName,vmAdminPassword'
   - task: TerraformCLI@0
     displayName: "Download Terraform providers"
     inputs:
       command: 'init'
   - task: TerraformCLI@0
-    displayName: "Test Terraform plan for VM infrastructure"
+    displayName: "Test Terraform plan for VM"
     inputs:
       command: 'plan'
       environmentServiceName: 'ARM'
       commandOptions: '--var=vmAdminUserName="$(vmAdminUserName)" --var=vmAdminUserName="$(vmAdminPassword)"'
   - task: TerraformCLI@0
-    displayName: "Build infrastructure"
+    displayName: "Build the VM"
     inputs:
       command: 'apply'
       environmentServiceName: 'ARM'
       commandOptions: '--var=vmAdminUserName="$(vmAdminUserName)" --var=vmAdminUserName="$(vmAdminPassword)"'
-  
-  
-  #     displayName: "Run Azure resource tests"
-  #   inputs:
-  #     azureSubscription: 'ARM'
-  #     ScriptType: 'FilePath'
-  #     ScriptPath: '$(workingDir)/tests/invoke-test.ps1'
-  #     ScriptArguments: '-TestScriptFilePath "$(workingDir)/tests/vmss.infrastructure.tests.ps1" -TestResultsFilePath "$(workingDir)/tests/vmss.infrastructure.tests.xml" -TestScriptParameters @{publicDnsName="$(publicDnsName)"}'
-  #     FailOnStandardError: true
-  #     azurePowerShellVersion: 'LatestVersion'
-  # - task: PublishTestResults@2
-  #   inputs:
-  #     testResultsFormat: "NUnit"
-  #     testResultsFiles: "$(workingDir)/tests/vmss.infrastructure.tests.xml"
-  #     failTaskOnFailedTests: true
-  # - task: PowerShell@2
-  #   displayName: "Run configuration tests"
-  #   inputs:
-  #     targetType: 'inline'
-  #     script: |
-  #       xxxxxxxxxx
-  #     pwsh: true
-  # - task: PublishTestResults@2
-  #   inputs:
-  #     testResultsFormat: "NUnit"
-  #     testResultsFiles: "$(workingDir)/tests/vmss.infrastructure.tests.xml"
-  #     failTaskOnFailedTests: true
+  - task: Pester@10
+    inputs:
+      scriptFolder: '$(System.DefaultWorkingDirectory)\tests'
+      resultsFile: '$(System.DefaultWorkingDirectory)\tests\results.XML'
+      usePSCore: True
+  - task: PowerShell@2
+    displayName: "Run Pester tests"
+    inputs:
+      azureSubscription: 'ARM'
+      ScriptType: 'FilePath'
+      ScriptPath: '$(workingDir)/tests/invoke-test.ps1'
+      ScriptArguments: '$(System.DefaultWorkingDirectory)/tests'
+      FailOnStandardError: true
+      azurePowerShellVersion: 'LatestVersion'
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: "NUnit"
+      testResultsFiles: "$(workingDir)/tests/results.xml"
+      failTaskOnFailedTests: true
