@@ -83,6 +83,7 @@ resource "azurerm_network_security_group" "nsg" {
   }
 }
 
+## This creates a service principal and application on it's own
 resource "azuredevops_serviceendpoint_azurerm" "endpointazure" {
   project_id                = azuredevops_project.project.id
   service_endpoint_name     = "ARM"
@@ -112,11 +113,12 @@ resource "azurerm_key_vault" "vault" {
     ]
   }
 
+
   access_policy {
     tenant_id = data.azurerm_client_config.current.tenant_id
     object_id = azuredevops_serviceendpoint_azurerm.endpointazure.id
 
-    secret_permissions = [
+     secret_permissions = [
       "get",
       "list"
     ]
@@ -143,6 +145,13 @@ resource "azurerm_key_vault" "vault" {
 resource "azuredevops_project" "project" {
   project_name        = "Infrastructure Automator"
   description = "Supporting pipeline for the Azure DevOps Pipelines for the Infrastructure Automator PowerShell Saturday Chicago conference talk"
+  visibility = "public"
+  features = {
+    "boards" = "disabled"
+    "repositories" = "disabled"
+    "testplans" = "disabled"
+    "artifacts" = "disabled"
+  }
 }
 
 
