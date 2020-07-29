@@ -56,35 +56,23 @@ WARNING: Using this setup exactly as is WILL incur some Azure costs!
 #>
 #endregion
 
-#region Local development
+#region Manual development and testing
+
 ## Here we will ensure we can build the VM, run the configuration and tests. Esentially, we're doing
-## all of the steps locally before moving these into an AzDo pipeline
+## all of the steps before moving these into an AzDo pipeline
 
 #region Build the initial infrastructure from scratch (one-time thing)
 
-<# Goals: To create the following with Terraform:
-    - Azure resource group
-    - Azure virtual network with subnet
-    - Azure automation account (for Azure State Configuration)
-    - Azure network security group
-    - Azure key vault with secrets for VM user and password (for storing secrets in the pipeline)
-    - Azure DevOps project
-    - Azure service endpoint for the pipeline to connect to the keyvault
-    - Azure service endpoint for The AzDo project to connect to the GitHub repo
-#>
-
-## Change to the local-dev\env-setup folder and download Terraform providers
+## Change to the env-setup folder and download Terraform providers
 $repoWorkingDir = '/Users/adambertram/Dropbox/GitRepos/InfraAutomator'
 Set-Location -Path "$repoWorkingDir\env_setup"
 terraform init
 
-#region Build and run the Terraform config
+## Build and run the Terraform config
 
-## Build the config (voila! It's already done!)
+code "$repoWorkingDir\env-setup\main.tf"
 
-# open "$repoWorkingDir\local_dev\env_setup\main.tf"
-
-## Set various env vars so we don't have to keep these sensitive keys in a config
+## Set various env vars so we don't have to keep these sensitive keys in a config. Terraform will use these.
 $env:AZDO_PERSONAL_ACCESS_TOKEN = 'rbgwlw5dzdigftol6es5xfd2wd7nmylagkxadqsbj4334chry5ya'
 $env:AZDO_ORG_SERVICE_URL = "https://dev.azure.com/adbertram/"
 
@@ -94,12 +82,8 @@ terraform plan --var-file=secrets.tfvars
 ## Create the infrastructure with Terraform (It's fast because it's already done!)
 terraform apply --var-file=secrets.tfvars -auto-approve
 
-## Note the network security group ID and subnet ID. We'll need those to build the VM. These are then placed in terraform.tfvars when
-## build the VM
-
-#endregion
-
-#region Create all of the remaining components that Terraform cannot or received an error building
+## Note the output:
+# network security group ID and subnet ID needs to go in terraform.tfvars (it's already there now)
 
 ## Create the secrets to store the VM username/password
 $kvName = 'infraautomator-keyvault'
@@ -110,12 +94,6 @@ az keyvault secret set --name vmAdminPassword --value "I like azure." --vault-na
 az extension add --name azure-devops
 az devops configure --defaults organization=https://dev.azure.com/adbertram project="Infrastructure Automator"
 
-## GitHub endpoint for the pipeline to connect to the repo
-$gitHubRepoUrl = 'https://github.com/adbertram/InfraAutomator'
-
-## gitHubAccessToken = '2e151d195ac89a80584711bcda2ed90664573012'
-$gitHubServiceEndpoint = az devops service-endpoint github create --github-url $gitHubRepoUrl --name 'GitHub' | ConvertFrom-Json
-
 ## Install Terraform extension in the org
 ## https://marketplace.visualstudio.com/items?itemName=charleszipp.azure-pipelines-tasks-terraform
 az devops extension install --extension-id azure-pipelines-tasks-terraform --publisher-id "charleszipp"
@@ -123,21 +101,31 @@ az devops extension install --extension-id azure-pipelines-tasks-terraform --pub
 ## Install the Pester extension
 az devops extension install --extension-id PesterRunner --publisher-id Pester
 
+## Create the GitHub service endpoint for the pipeline to connect to the repo
+$gitHubRepoUrl = 'https://github.com/adbertram/InfraAutomator'
+
+$gitHubServiceEndpoint = az devops service-endpoint github create --github-url $gitHubRepoUrl --name 'GitHub' | ConvertFrom-Json
+
 ## Create the pipeline but don't run it yet
-az pipelines create --name 'InfrastructureAutomator' --repository $gitHubRepoUrl --branch master --service-connection $gitHubServiceEndpoint.id --skip-run
-## Set the visibility to public if not already created: https://dev.azure.com/adbertram/Infrastructure%20Automator/_settings/
+$null = az pipelines create --name 'InfrastructureAutomator' --repository $gitHubRepoUrl --branch master --service-connection $gitHubServiceEndpoint.id --skip-run
 
-## Allow the pipeline to read the keyvault. This isn't possible in Terraform
-$serviceConnectionId = (az devops service-endpoint list | ConvertFrom-Json | where {$_.name -eq 'ARM'}).id
-az devops service-endpoint update --id $serviceConnectionId --enable-for-all
+## Allow the pipeline to use the service connection. This isn't possible in Terraform
+$azDoSrvConn = az devops service-endpoint list | ConvertFrom-Json | where {$_.name -eq 'ARM'}
+$null = az devops service-endpoint update --id $azDoSrvConn.Id --enable-for-all
 
-# az keyvault set-policy --name $kvName --spn $spIdUri --secret-permissions get list
+## Give the project's ARM service connection access to the key vault. Doesn't work with Terraform for some reason
+
+## This is the service connection created by Terraform
+$azDoServConnSpn = (az devops service-endpoint list | ConvertFrom-Json | ? {$_.Name -eq 'ARM'}).data.spnObjectId
+
+$spnId = (az ad sp list --all | convertfrom-json | ? {$_.objectId -eq $azDoServConnSpn}).objectId
+$null = az keyvault set-policy --name $kvName --object-id $spnId --secret-permissions get list
 
 #endregion
 
 ## Create the DSC configuration (you could test this locally)
 
-code "$repoWorkingDir\local-dev\vm_automation\iis.ps1"
+code "$repoWorkingDir\iis.ps1"
 
 #region Send the DSC configuration to Azure State Configuration
 
@@ -161,7 +149,7 @@ Start-AzAutomationDscCompilationJob -AutomationAccountName $automationAcctName -
 Set-Location -Path $repoWorkingDir
 
 ## Build the Terraform config to deploy an Azure VM (this will go in the pipeline)
-code 'main.tf'
+code "$repoWorkingDir\main.tf"
 
 ## Test the Terraform config for the VM
 terraform init
@@ -199,10 +187,12 @@ Troubleshotoing tips: log files on VM:
 #endregion
 
 ## Build the Pester tests to confirm both Terraform and DSC
+
+## These are required because in Pester v5, you can't pass parameters to tests
 $global:rgName = $azResourceGroup
 $global:VmHostName = 'VM-0'
 
-## Two "layers" of tests; one for the VM deployment and one for the configuration of the OS
+## There are two "layers" of tests; one for the VM deployment and one for the configuration of the OS
 
 ## Open the /tests folder and kick off the tests (they take a bit)
 
@@ -213,8 +203,10 @@ code "$repoWorkingDir\azure-pipelines.yml"
 
 #endregion
 
+## Kick off the pipeline
+$null = az pipelines run --name InfrastructureAutomator 
+
 #region Clean up the remnants
-## Terraform destroy here for the VM and environment
 
 Set-Location -Path $repoWorkingDir
 terraform destroy --var-file=secrets.tfvars -auto-approve

@@ -30,11 +30,13 @@ steps:
       environmentServiceName: 'ARM'
       commandOptions: '-input=false --var="vmAdminUsername=$(vmAdminUsername)" --var="vmAdminPassword=$(vmAdminPassword)"'
   - task: Pester@10
+    displayName: "Run the infrastructure tests"
     inputs:
       scriptFolder: '$(System.DefaultWorkingDirectory)/tests'
       resultsFile: '$(System.DefaultWorkingDirectory)/tests/results.XML'
       usePSCore: True
   - task: PublishTestResults@2
+    displayName: "Publish the test results to the pipeline"
     inputs:
       testResultsFormat: "NUnit"
       testResultsFiles: "$(workingDir)/tests/results.xml"
