@@ -98,9 +98,6 @@ az devops configure --defaults organization=https://dev.azure.com/adbertram proj
 ## https://marketplace.visualstudio.com/items?itemName=charleszipp.azure-pipelines-tasks-terraform
 az devops extension install --extension-id azure-pipelines-tasks-terraform --publisher-id "charleszipp"
 
-## Install the Pester extension
-az devops extension install --extension-id PesterRunner --publisher-id Pester
-
 ## Create the GitHub service endpoint for the pipeline to connect to the repo
 $gitHubRepoUrl = 'https://github.com/adbertram/InfraAutomator'
 

@@ -6,17 +6,13 @@ param(
 
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
-    [hashtable]$TestScriptParameters,
-
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
     [string]$TestResultsFilePath
 )
 
 Install-Module -Name Pester -Force
 
 $params = @{
-    Script       = @{ Path = $TestScriptFilePath; Parameters = $TestScriptParameters }
+    Path         = $TestScriptFilePath
     OutputFormat = 'NUnitXml'
     OutputFile   = $TestResultsFilePath
     EnableExit   = $true
