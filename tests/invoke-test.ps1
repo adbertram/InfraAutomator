@@ -16,5 +16,6 @@ $params = @{
     OutputFormat = 'NUnitXml'
     OutputFile   = $TestResultsFilePath
     EnableExit   = $true
+    PassThru     = $true
 }
 Invoke-Pester @params
