@@ -33,7 +33,7 @@ steps:
     displayName: "Run the infrastructure tests"
     inputs:
       scriptFolder: '$(System.DefaultWorkingDirectory)/tests'
-      resultsFile: '$(System.DefaultWorkingDirectory)/tests/results.XML'
+      resultsFile: '$(System.DefaultWorkingDirectory)/tests/results.xml'
       usePSCore: True
   - task: PublishTestResults@2
     displayName: "Publish the test results to the pipeline"
