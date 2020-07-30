@@ -1,4 +1,2 @@
-*.tfstate
-*.tfstate.*
 github_access_token.txt
 **/.terraform/*
