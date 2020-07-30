@@ -29,12 +29,15 @@ steps:
       command: 'apply'
       environmentServiceName: 'ARM'
       commandOptions: '-input=false --var="vmAdminUsername=$(vmAdminUsername)" --var="vmAdminPassword=$(vmAdminPassword)"'
-  - task: Pester@10
+  - task: AzurePowerShell@5
     displayName: "Run the infrastructure tests"
     inputs:
-      scriptFolder: '$(System.DefaultWorkingDirectory)/tests/vm_config.tests.ps1'
-      resultsFile: '$(System.DefaultWorkingDirectory)/tests/results.xml'
-      usePSCore: True
+      azureSubscription: 'ARM'
+      ScriptType: 'FilePath'
+      ScriptPath: '$(System.DefaultWorkingDirectory)/tests/invoke-test.ps1'
+      ScriptArguments: '-TestScriptFilePath "$(System.DefaultWorkingDirectory)/tests" -TestResultsFilePath "$(System.DefaultWorkingDirectory)/tests/results.xml"'
+      FailOnStandardError: true
+      azurePowerShellVersion: 'LatestVersion'
   - task: PublishTestResults@2
     displayName: "Publish the test results to the pipeline"
     inputs:
