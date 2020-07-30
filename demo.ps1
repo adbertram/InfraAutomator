@@ -132,13 +132,13 @@ code "$repoWorkingDir\iis.ps1"
 ## Upload and import the DSC configuration (this is only done once)
 $automationAcctName = 'dev-playground'
 $azResourceGroup = 'dev_playground'
-Import-AzAutomationDscConfiguration -AutomationAccountName $automationAcctName -ResourceGroupName $azResourceGroup -SourcePath "$repoWorkingDir/iis.ps1" -Published
+$null = Import-AzAutomationDscConfiguration -AutomationAccountName $automationAcctName -ResourceGroupName $azResourceGroup -SourcePath "$repoWorkingDir/iis.ps1" -Published
 
 ## Remove a configuration (troubleshooting)
 # Remove-AzAutomationDscConfiguration -Name iis -AutomationAccountName $automationAcctName -ResourceGroupName $azResourceGroup -Force
 
 ## Compile the DSC configuration
-Start-AzAutomationDscCompilationJob -AutomationAccountName $automationAcctName -ResourceGroupName $azResourceGroup -ConfigurationName 'IIS'
+$null = Start-AzAutomationDscCompilationJob -AutomationAccountName $automationAcctName -ResourceGroupName $azResourceGroup -ConfigurationName 'IIS'
 
 #endregion
 
@@ -203,8 +203,10 @@ code "$repoWorkingDir\azure-pipelines.yml"
 
 #endregion
 
+## Sync the repo to get the new state in the repo. This will kick off the pipeline
+
 ## Kick off the pipeline
-$null = az pipelines run --name InfrastructureAutomator 
+# $null = az pipelines run --name InfrastructureAutomator 
 
 #region Clean up the remnants
 

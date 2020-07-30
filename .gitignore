@@ -1,5 +1,4 @@
-.terraform.tfstate.lock.info
-terraform*
-terraform.tfstate
-terraform.tfstate.backup
+*.tfstate
+*.tfstate.*
 github_access_token.txt
+**/.terraform/*
