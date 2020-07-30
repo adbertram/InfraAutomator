@@ -39,5 +39,5 @@ steps:
     displayName: "Publish the test results to the pipeline"
     inputs:
       testResultsFormat: "NUnit"
-      testResultsFiles: "$(workingDir)/tests/results.xml"
+      testResultsFiles: "$(System.DefaultWorkingDirectory)/tests/results.xml"
       failTaskOnFailedTests: true
