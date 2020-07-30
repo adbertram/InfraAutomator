@@ -63,8 +63,16 @@ WARNING: Using this setup exactly as is WILL incur some Azure costs!
 
 #region Build the initial infrastructure from scratch (one-time thing)
 
-## Change to the env-setup folder and download Terraform providers
+
 $repoWorkingDir = '/Users/adambertram/Dropbox/GitRepos/InfraAutomator'
+
+## Clean out the TF state files
+Remove-Item -Path "$repoWorkingDir/env_setup/.terraform" -Force -Recurse -ErrorAction Ignore
+Remove-Item -Path "$repoWorkingDir/env_setup/*tfstate*" -Force -ErrorAction Ignore
+Remove-Item -Path "$repoWorkingDir/*tfstate*" -Force -ErrorAction Ignore
+
+## Change to the env-setup folder and download Terraform providers
+
 Set-Location -Path "$repoWorkingDir\env_setup"
 terraform init
 
@@ -87,8 +95,8 @@ terraform apply --var-file=secrets.tfvars -auto-approve
 
 ## Create the secrets to store the VM username/password
 $kvName = 'infraautomator-keyvault'
-az keyvault secret set --name vmAdminUsername --value 'adminuser' --vault-name $kvName
-az keyvault secret set --name vmAdminPassword --value "I like azure." --vault-name $kvName
+$null = az keyvault secret set --name vmAdminUsername --value 'adminuser' --vault-name $kvName
+$null = az keyvault secret set --name vmAdminPassword --value "I like azure." --vault-name $kvName
 
 ## Install the AzDo extension to the Azure CLI
 az extension add --name azure-devops
