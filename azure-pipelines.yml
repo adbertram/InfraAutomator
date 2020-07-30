@@ -32,7 +32,7 @@ steps:
   - task: Pester@10
     displayName: "Run the infrastructure tests"
     inputs:
-      scriptFolder: '$(System.DefaultWorkingDirectory)/tests'
+      scriptFolder: '$(System.DefaultWorkingDirectory)/tests/vm_config.tests.ps1'
       resultsFile: '$(System.DefaultWorkingDirectory)/tests/results.xml'
       usePSCore: True
   - task: PublishTestResults@2
