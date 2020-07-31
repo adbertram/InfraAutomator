@@ -33,13 +33,13 @@ steps:
       environmentServiceName: 'ARM'
       commandOptions: '-input=false --var="vmAdminUsername=$(vmAdminUsername)" --var="vmAdminPassword=$(vmAdminPassword)"'
   - task: PowerShell@2
-    displayname: "Import the DSC configuration"
+    displayName: "Import the DSC configuration"
     inputs:
       targetType: 'inline'
       script: |
         $null = Import-AzAutomationDscConfiguration -AutomationAccountName $(automation_account_name) -ResourceGroupName $(resource_group_name) -SourcePath "$(System.DefaultWorkingDirectory)/iis.ps1" -Published
         $null = Start-AzAutomationDscCompilationJob -AutomationAccountName $(automation_account_name) -ResourceGroupName $(resource_group_name) -ConfigurationName 'IIS'
-    pwsh: true
+      pwsh: true
   - task: AzurePowerShell@5
     displayName: "Run the infrastructure tests"
     inputs:
