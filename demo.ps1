@@ -41,18 +41,11 @@ WARNING: Using this setup exactly as is WILL incur some Azure costs!
 
 ===================
 
-1. Lay out your plan.
-    We want:
-        - An Azure DevOps pipeline that will bring together various automation tasks
-            - Deploy an Azure VM
-            - Configure IIS on that VM with DSC
-            - Run Pester tests to ensure everything is configured correctly
-
-2. Build the initial infrastructure to support deploying the VM. This is done once. It will be done all with Terraform.
-3. Build and test the Terraform config to deploy the VM manually.
-4. Build the DSC configuration for the VM and onboard the VM to Azure State Configuration manually.
-5. Build the Pester tests to test the VM deployment and DSC configuration steps.
-6. Create an Azure pipeline for the VM deployment process linking Terraform, Azure State Configuration and Pester together.
+1. Build the initial infrastructure to support deploying the VM. This is done once. It will be done all with Terraform.
+2. Build and test the Terraform config to deploy the VM manually.
+3. Build the DSC configuration for the VM and onboard the VM to Azure State Configuration manually.
+4. Build the Pester tests to test the VM deployment and DSC configuration steps.
+7. Create an Azure pipeline for the VM deployment process linking Terraform, Azure State Configuration and Pester together.
 #>
 #endregion
 
@@ -62,8 +55,6 @@ WARNING: Using this setup exactly as is WILL incur some Azure costs!
 ## all of the steps before moving these into an AzDo pipeline
 
 #region Build the initial infrastructure from scratch (one-time thing)
-
-
 $repoWorkingDir = '/Users/adambertram/Dropbox/GitRepos/InfraAutomator'
 
 ## Clean out the TF state files
