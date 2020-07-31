@@ -38,7 +38,7 @@ steps:
       azureSubscription: 'ARM'
       script: |
         $null = Import-AzAutomationDscConfiguration -AutomationAccountName $(automation_account_name) -ResourceGroupName $(resource_group_name) -SourcePath "$(System.DefaultWorkingDirectory)/iis.ps1" -Published
-        $null = Start-AzAutomationDscCompilationJob -AutomationAccountName $(automation_account_name) -ResourceGroupName $(resource_group_name) -ConfigurationName 'IIS'
+        #$null = Start-AzAutomationDscCompilationJob -AutomationAccountName $(automation_account_name) -ResourceGroupName $(resource_group_name) -ConfigurationName 'IIS'
   - task: AzurePowerShell@5
     displayName: "Run the infrastructure tests"
     inputs:
