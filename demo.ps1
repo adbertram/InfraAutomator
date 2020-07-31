@@ -9,6 +9,7 @@ the VM with DSC and and run Pester tests to ensure the VM was built successfully
 #region Important links to note to build this yourself:
 <#
 Public GitHub repo: https://github.com/adbertram/infraautomator
+Public Azure DevOps project: https://dev.azure.com/adbertram/Infrastructure%20Automator
 
 Blog posts: https://adamtheautomator.com/azure-devops-piaz loginpeline-infrastructure
             https://adamtheautomator.com/terraform-azure/
