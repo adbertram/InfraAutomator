@@ -50,18 +50,8 @@ WARNING: Using this setup exactly as is WILL incur some Azure costs!
 #>
 #endregion
 
-#region Manual development and testing
-
-## Here we will ensure we can build the VM, run the configuration and tests. Esentially, we're doing
-## all of the steps before moving these into an AzDo pipeline
-
 #region Build the initial infrastructure from scratch (one-time thing)
 $repoWorkingDir = '/Users/adambertram/Dropbox/GitRepos/InfraAutomator'
-
-## Clean out the TF state files
-Remove-Item -Path "$repoWorkingDir/env_setup/.terraform" -Force -Recurse -ErrorAction Ignore
-Remove-Item -Path "$repoWorkingDir/env_setup/*tfstate*" -Force -ErrorAction Ignore
-Remove-Item -Path "$repoWorkingDir/*tfstate*" -Force -ErrorAction Ignore
 
 ## Change to the env-setup folder and download Terraform providers
 
@@ -118,8 +108,6 @@ $azDoServConnSpn = (az devops service-endpoint list | ConvertFrom-Json | ? {$_.N
 $spnId = (az ad sp list --all | convertfrom-json | ? {$_.objectId -eq $azDoServConnSpn}).objectId
 $null = az keyvault set-policy --name $kvName --object-id $spnId --secret-permissions get list
 
-#endregion
-
 ## Create the DSC configuration (you could test this locally)
 
 code "$repoWorkingDir\iis.ps1"
@@ -141,7 +129,7 @@ $null = Start-AzAutomationDscCompilationJob -AutomationAccountName $automationAc
 
 #endregion
 
-#region Build the automation for the VM (repeatable)
+#region Build the VM-specific components. This stuff will go in the pipeline eventually
 
 Set-Location -Path $repoWorkingDir
 
@@ -152,8 +140,6 @@ code "$repoWorkingDir\main.tf"
 terraform init
 terraform plan --var-file=secrets.tfvars
 terraform apply --var-file=secrets.tfvars -auto-approve
-
-#endregion
 
 #region Register the Azure VM with the Azure Automation DSC service
 ## This install the DSC extension, registers the node with Azure State Configuration and defines the configuration to use
@@ -195,15 +181,14 @@ $global:VmHostName = 'VM-0'
 
 Invoke-Pester -Path "$repoWorkingDir/tests"
 
+#endregion
+
 #region Build the pipeline to put it all together
 code "$repoWorkingDir\azure-pipelines.yml"
 
-#endregion
-
-## Sync the repo to get the new state in the repo. This will kick off the pipeline
-
 ## Kick off the pipeline
-# $null = az pipelines run --name InfrastructureAutomator 
+$null = az pipelines run --name InfrastructureAutomator
+#endregion
 
 #region Clean up the remnants
 
