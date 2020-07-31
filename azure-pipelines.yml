@@ -9,58 +9,58 @@ variables:
   resource_group_name: "dev_playground"
 
 ## This is only split into job so that the DSC configuration is run on Windows
-jobs:
-  - job: InfrastructureBuild
-    steps:
-    - task: AzureKeyVault@1
-      displayName: "Download the Keyvault secrets"
-      inputs:
-        azureSubscription: 'ARM'
-        KeyVaultName: $(keyvault_name)
-        SecretsFilter: 'vmAdminUsername,vmAdminPassword'
-    - task: TerraformCLI@0
-      displayName: "Download Terraform providers"
-      inputs:
-        command: 'init'
-    - task: TerraformCLI@0
-      displayName: "Test Terraform plan"
-      inputs:
-        command: 'plan'
-        environmentServiceName: 'ARM'
-        commandOptions: '-input=false --var="vmAdminUsername=$(vmAdminUsername)" --var="vmAdminPassword=$(vmAdminPassword)"'
-    - task: TerraformCLI@0
-      displayName: "Build the VM"
-      inputs:
-        command: 'apply'
-        environmentServiceName: 'ARM'
-        commandOptions: '-input=false --var="vmAdminUsername=$(vmAdminUsername)" --var="vmAdminPassword=$(vmAdminPassword)"'
-  - job: VMConfiguration
-    dependsOn:
-      - InfrastructureBuild
-    pool:
-      vmImage: "windows-latest"
-    steps:
-    - task: AzurePowerShell@5
-      displayName: "Import the DSC configuration"
-      inputs:
-        azureSubscription: 'ARM'
-        ScriptType: 'FilePath'
-        ScriptPath: '$(System.DefaultWorkingDirectory)/compile_dsc.ps1'
-        ScriptArguments: '-AzureAutomationAccountName $(automation_account_name) -ResourceGroup $(resource_group_name) -ScriptFilePath "$(System.DefaultWorkingDirectory)\iis.ps1"'
-        FailOnStandardError: true
-        azurePowerShellVersion: 'LatestVersion'
-    - task: AzurePowerShell@5
-      displayName: "Run the infrastructure tests"
-      inputs:
-        azureSubscription: 'ARM'
-        ScriptType: 'FilePath'
-        ScriptPath: '$(System.DefaultWorkingDirectory)/tests/invoke-test.ps1'
-        ScriptArguments: '-TestScriptFilePath "$(System.DefaultWorkingDirectory)/tests/vm.tests.ps1" -TestResultsFilePath "$(System.DefaultWorkingDirectory)/tests/results.xml"'
-        FailOnStandardError: true
-        azurePowerShellVersion: 'LatestVersion'
-    - task: PublishTestResults@2
-      displayName: "Publish the test results to the pipeline"
-      inputs:
-        testResultsFormat: "NUnit"
-        testResultsFiles: "$(System.DefaultWorkingDirectory)/tests/results.xml"
-        failTaskOnFailedTests: true
+# jobs:
+#   - job: InfrastructureBuild
+steps:
+  - task: AzureKeyVault@1
+    displayName: "Download the Keyvault secrets"
+    inputs:
+      azureSubscription: 'ARM'
+      KeyVaultName: $(keyvault_name)
+      SecretsFilter: 'vmAdminUsername,vmAdminPassword'
+  - task: TerraformCLI@0
+    displayName: "Download Terraform providers"
+    inputs:
+      command: 'init'
+  - task: TerraformCLI@0
+    displayName: "Test Terraform plan"
+    inputs:
+      command: 'plan'
+      environmentServiceName: 'ARM'
+      commandOptions: '-input=false --var="vmAdminUsername=$(vmAdminUsername)" --var="vmAdminPassword=$(vmAdminPassword)"'
+  - task: TerraformCLI@0
+    displayName: "Build the VM"
+    inputs:
+      command: 'apply'
+      environmentServiceName: 'ARM'
+      commandOptions: '-input=false --var="vmAdminUsername=$(vmAdminUsername)" --var="vmAdminPassword=$(vmAdminPassword)"'
+# - job: VMConfiguration
+#   dependsOn:
+#     - InfrastructureBuild
+#   pool:
+#     vmImage: "windows-latest"
+#   steps:
+  - task: AzurePowerShell@5
+    displayName: "Import the DSC configuration"
+    inputs:
+      azureSubscription: 'ARM'
+      ScriptType: 'FilePath'
+      ScriptPath: '$(System.DefaultWorkingDirectory)/compile_dsc.ps1'
+      ScriptArguments: '-AzureAutomationAccountName $(automation_account_name) -ResourceGroup $(resource_group_name) -ScriptFilePath "$(System.DefaultWorkingDirectory)\iis.ps1"'
+      FailOnStandardError: true
+      azurePowerShellVersion: 'LatestVersion'
+  - task: AzurePowerShell@5
+    displayName: "Run the infrastructure tests"
+    inputs:
+      azureSubscription: 'ARM'
+      ScriptType: 'FilePath'
+      ScriptPath: '$(System.DefaultWorkingDirectory)/tests/invoke-test.ps1'
+      ScriptArguments: '-TestScriptFilePath "$(System.DefaultWorkingDirectory)/tests/vm.tests.ps1" -TestResultsFilePath "$(System.DefaultWorkingDirectory)/tests/results.xml"'
+      FailOnStandardError: true
+      azurePowerShellVersion: 'LatestVersion'
+  - task: PublishTestResults@2
+    displayName: "Publish the test results to the pipeline"
+    inputs:
+      testResultsFormat: "NUnit"
+      testResultsFiles: "$(System.DefaultWorkingDirectory)/tests/results.xml"
+      failTaskOnFailedTests: true
