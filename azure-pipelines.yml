@@ -8,7 +8,8 @@ variables:
   automation_account_name: "dev-playground"
   resource_group_name: "dev_playground"
 
-
+pool:
+  vmImage: "windows-latest"
 steps:
   - task: AzureKeyVault@1
     displayName: "Download the Keyvault secrets"
