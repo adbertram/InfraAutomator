@@ -7,4 +7,3 @@ configuration IIS
         IncludeAllSubFeature = $true
     }
 }
-IIS
