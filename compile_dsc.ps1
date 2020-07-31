@@ -10,5 +10,5 @@ param(
     [string]$ScriptFilePath
 )
 
-$null = Import-AzAutomationDscConfiguration -AutomationAccountName $AzureAutomationAccountName -ResourceGroupName $ResourceGroup -SourcePath $ScriptFilePath -Published
+$null = Import-AzAutomationDscConfiguration -AutomationAccountName $AzureAutomationAccountName -ResourceGroupName $ResourceGroup -SourcePath $ScriptFilePath -Published -Force
 $null = Start-AzAutomationDscCompilationJob -AutomationAccountName $AzureAutomationAccountName -ResourceGroupName $ResourceGroup -ConfigurationName 'IIS'
