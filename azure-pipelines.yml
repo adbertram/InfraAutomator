@@ -8,10 +8,9 @@ variables:
   automation_account_name: "dev-playground"
   resource_group_name: "dev_playground"
 
+## This is only split into job so that the DSC configuration is run on Windows
 jobs:
   - job: InfrastructureBuild
-    pool:
-      vmImage: "windows-latest"
     steps:
     - task: AzureKeyVault@1
       displayName: "Download the Keyvault secrets"
@@ -36,6 +35,10 @@ jobs:
         environmentServiceName: 'ARM'
         commandOptions: '-input=false --var="vmAdminUsername=$(vmAdminUsername)" --var="vmAdminPassword=$(vmAdminPassword)"'
   - job: VMConfiguration
+    dependsOn:
+      - InfrastructureBuild
+    pool:
+      vmImage: "windows-latest"
     steps:
     - task: AzurePowerShell@5
       displayName: "Import the DSC configuration"
