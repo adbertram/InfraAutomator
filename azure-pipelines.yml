@@ -11,7 +11,7 @@ variables:
 ## This is only split into job so that the DSC configuration is run on Windows
 # jobs:
 #   - job: InfrastructureBuild
-  steps:
+steps:
   - task: AzureKeyVault@1
     displayName: "Download the Keyvault secrets"
     inputs:
