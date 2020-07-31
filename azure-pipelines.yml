@@ -44,9 +44,9 @@ jobs:
       displayName: "Import the DSC configuration"
       inputs:
         azureSubscription: 'ARM'
-        inline: |
-          $null = Import-AzAutomationDscConfiguration -AutomationAccountName $(automation_account_name) -ResourceGroupName $(resource_group_name) -SourcePath '$(System.DefaultWorkingDirectory)\iis.ps1' -Published
-          $null = Start-AzAutomationDscCompilationJob -AutomationAccountName $(automation_account_name) -ResourceGroupName $(resource_group_name) -ConfigurationName 'IIS'
+        ScriptType: 'FilePath'
+        ScriptPath: '$(System.DefaultWorkingDirectory)/compile_dsc.ps1'
+        ScriptArguments: '-AzureAutomationAccountName $(automation_account_name) -ResourceGroup $(resource_group_name) -ScriptFilePath "$(System.DefaultWorkingDirectory)\iis.ps1"'
         FailOnStandardError: true
         azurePowerShellVersion: 'LatestVersion'
     - task: AzurePowerShell@5
